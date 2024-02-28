@@ -19,8 +19,8 @@ namespace ScoresAndRanksTest
          */
         internal void InitData()
         {
-            //_service = new SortedListService();
-            _service = new LinkListService();
+            _service = new SortedListService();
+            //_service = new LinkListService();
             Customer customer1 = new Customer
             {
                 Id = 1,
