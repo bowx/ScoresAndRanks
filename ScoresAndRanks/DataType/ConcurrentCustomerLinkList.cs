@@ -168,6 +168,16 @@ namespace ScoresAndRanks.DataType
             }
         }
 
+        /// <summary>
+        /// Check if the id is exist
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public bool ContainsId(long id)
+        {
+            return _idMap.ContainsKey(id);
+        }
+
         #region Methods for traversing
         private void InverseInsertNode(LinkedListNode<ScoreRankModel> node, LinkedListNode<ScoreRankModel>? currentNode)
         {

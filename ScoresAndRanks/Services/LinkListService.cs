@@ -31,6 +31,7 @@ namespace ScoresAndRanks.Services
         public List<Customer> GetCustomer(long id, int high, int low)
         {
             var result = new List<Customer>();
+            if(!_customerList.ContainsId(id)) return result;
             foreach (var customer in _customerList.GetByWindow(id, high, low))
             {
                 result.Add(new Customer

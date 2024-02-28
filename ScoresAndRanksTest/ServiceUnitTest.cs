@@ -125,6 +125,8 @@ namespace ScoresAndRanksTest
             customers = _service.GetCustomer(65535, -100, -100);
             Assert.Single(customers);
 
+            customers = _service.GetCustomer(12345, 0, 0);
+            Assert.Empty(customers);
 
         }
     }
