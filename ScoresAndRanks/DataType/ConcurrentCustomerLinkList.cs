@@ -52,7 +52,11 @@ namespace ScoresAndRanks.DataType
                         //update
                         var node = _idMap[id];
                         var itemStruct = node.Value;
-                        itemStruct.Score += score;
+                        //checked in case of overflow
+                        checked
+                        {
+                            itemStruct.Score += score;
+                        }
                         node.Value = itemStruct;
 
                         if (score > 0)

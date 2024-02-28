@@ -128,6 +128,12 @@ namespace ScoresAndRanksTest
             customers = _service.GetCustomer(12345, 0, 0);
             Assert.Empty(customers);
 
+            Assert.Throws<OverflowException>(() => _service.InsertOrUpdateCustomer(new Customer {
+                Id = 1,
+                Score = long.MaxValue,
+                Rank = 1
+            }));
+
         }
     }
 }

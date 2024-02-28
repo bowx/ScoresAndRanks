@@ -55,9 +55,9 @@ namespace ScoresAndRanks.DataType
                         //get score and old key
                         var score = _idMapping[idScore.Id];
                         var oldKey = new IdScoreStruct { Id = idScore.Id, Score = score };
-                        //calculate score
-                        score += idScore.Score;
                         rwLock.EnterWriteLock();
+                        //calculate score, add checked in case of overflow
+                        checked { score += idScore.Score; }
                         _idMapping.AddOrUpdate(idScore.Id, idScore.Score, (Id, Score) => { return score; });
                         //key changed need to remove the old data
                         _list.Remove(oldKey);
