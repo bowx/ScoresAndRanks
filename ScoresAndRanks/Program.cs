@@ -11,11 +11,17 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<IScoresAndRanksService, SkipListService>();
 //builder.Services.AddSingleton<IScoresAndRanksService, SortedListService>();
 
+//Exception Handler
+builder.Services.AddExceptionHandler<ScoresAndRanks.ExceptionHandler.ScoresAndRanksExceptionHandler>();
+builder.Services.AddProblemDetails();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 app.UseSwagger();
 app.UseSwaggerUI();
+
+app.UseExceptionHandler();
 
 //app.UseHttpsRedirection();
 
