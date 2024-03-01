@@ -4,7 +4,7 @@ using ScoresAndRanks.Services;
 namespace ScoresAndRanks.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("leaderboard")]
     public class LeaderboardController : Controller
     {
         private readonly IScoresAndRanksService _scoresAndRanksService;

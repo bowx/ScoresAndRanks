@@ -21,7 +21,7 @@ namespace ScoresAndRanks.Services
             {
                 result.Add(new Customer
                 {
-                    Id = kv.Value.Id,
+                    CustomerID = kv.Value.Id,
                     Score = kv.Value.Score,
                     Rank = kv.Key
                 });
@@ -39,7 +39,7 @@ namespace ScoresAndRanks.Services
             {
                 result.Add(new Customer
                 {
-                    Id = kv.Value.Id,
+                    CustomerID = kv.Value.Id,
                     Score = kv.Value.Score,
                     Rank = kv.Key
                 });
@@ -49,7 +49,7 @@ namespace ScoresAndRanks.Services
 
         public void InsertOrUpdateCustomer(Customer customer)
         {
-            _customerList.AddOrUpdate(new ConcurrentCustomerSortedList.IdScoreStruct { Id = customer.Id, Score = customer.Score });
+            _customerList.AddOrUpdate(new ConcurrentCustomerSortedList.IdScoreStruct { Id = customer.CustomerID, Score = customer.Score });
 
         }
 

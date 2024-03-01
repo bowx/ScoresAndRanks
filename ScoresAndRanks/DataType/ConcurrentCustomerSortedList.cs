@@ -58,10 +58,20 @@ namespace ScoresAndRanks.DataType
                         rwLock.EnterWriteLock();
                         //calculate score, add checked in case of overflow
                         checked { score += idScore.Score; }
-                        _idMapping.AddOrUpdate(idScore.Id, idScore.Score, (Id, Score) => { return score; });
-                        //key changed need to remove the old data
-                        _list.Remove(oldKey);
-                        _list.Add(new IdScoreStruct { Id = idScore.Id, Score = score }, true);
+                        //delete if the final score is negative or zore
+                        if(score <= 0)
+                        {
+                            _list.Remove(oldKey);
+                            _idMapping.TryRemove(idScore.Id, out _);
+                        }
+                        else
+                        {
+                            _idMapping.AddOrUpdate(idScore.Id, idScore.Score, (Id, Score) => { return score; });
+                            //key changed need to remove the old data
+                            _list.Remove(oldKey);
+                            _list.Add(new IdScoreStruct { Id = idScore.Id, Score = score }, true);
+
+                        }
                     }
                 }
                 catch (Exception)

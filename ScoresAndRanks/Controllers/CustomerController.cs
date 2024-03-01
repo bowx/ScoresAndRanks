@@ -6,7 +6,7 @@ using System.Diagnostics;
 namespace ScoresAndRanks.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("customer")]
     public class CustomerController : Controller
     {
         private readonly IScoresAndRanksService _scoresAndRanksService;
@@ -16,10 +16,10 @@ namespace ScoresAndRanks.Controllers
             _scoresAndRanksService = scoresAndRanksService;
         }
 
-        [HttpPost]
-        public ActionResult UpdateAndCreate(Customer customer )
+        [HttpPost("/customer/{customerId}/score/{score}")]
+        public ActionResult UpdateAndCreate(long customerId, long score )
         {
-            _scoresAndRanksService.InsertOrUpdateCustomer(customer);    
+            _scoresAndRanksService.InsertOrUpdateCustomer(new Customer { CustomerID = customerId, Score = score});    
             return NoContent();
         }
 

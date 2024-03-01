@@ -27,7 +27,7 @@ namespace ScoresAndRanks.Services
             {
                 result.Add(new Customer
                 {
-                    Id = customer.Id,
+                    CustomerID = customer.Id,
                     Score = customer.Score,
                     Rank = customer.Rank
                 });
@@ -37,7 +37,7 @@ namespace ScoresAndRanks.Services
 
         public void InsertOrUpdateCustomer(Customer customer)
         {
-            _customerList.AddOrUpdate(customer.Id, customer.Score);
+            _customerList.AddOrUpdate(customer.CustomerID, customer.Score);
         }
     }
 }

@@ -31,7 +31,7 @@ namespace ScoresAndRanks.Controllers
             {
                 Customer customer = new Customer
                 {
-                    Id = i,
+                    CustomerID = i,
                     Score = /*1100000 - i,*/ new Random().Next(10, 900000),//Insert from behind is more faster than randomly insert
                     Rank = 0
                 };
@@ -50,7 +50,7 @@ namespace ScoresAndRanks.Controllers
         public ActionResult<int> RandomUpdateAndCreate()
         {
             Customer customer = new Customer {
-                Id = new Random().Next(1000000, 5000000),
+                CustomerID = new Random().Next(1000000, 5000000),
                 Score = new Random().Next(10, 900000),
                 Rank = 0
 

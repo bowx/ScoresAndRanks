@@ -398,8 +398,19 @@ namespace ScoresAndRanks.DataType
                             {
                                 node.Value.Score += score;
                             }
-                            this.Remove(node);
-                            _idMap[id] = this.Add(node.Value);
+                            //delete if the final score is negative or zore
+                            if(node.Value.Score <= 0)
+                            {
+                                this.Remove(node);
+                                _idMap.TryRemove(id, out _);
+
+                            }
+                            else
+                            {
+                                this.Remove(node);
+                                _idMap[id] = this.Add(node.Value);
+
+                            }
                         }
                     }
 
@@ -441,7 +452,7 @@ namespace ScoresAndRanks.DataType
                 for(int i = start; i <= end; i++)
                 {
                     result.Add(new Customer { 
-                        Id = startNode.Value.Id,
+                        CustomerID = startNode.Value.Id,
                         Score = startNode.Value.Score,
                         Rank = i
                     });

@@ -25,19 +25,19 @@ namespace ScoresAndRanksTest
 
             Customer customer1 = new Customer
             {
-                Id = 1,
+                CustomerID = 1,
                 Score = 100,
                 Rank = 0
             };
             Customer customer2 = new Customer
             {
-                Id = 65535,
+                CustomerID = 65535,
                 Score = 200,
                 Rank = 0
             };
             Customer customer3 = new Customer
             {
-                Id = 87982,
+                CustomerID = 87982,
                 Score = 300,
                 Rank = 0
             };
@@ -48,7 +48,7 @@ namespace ScoresAndRanksTest
 
         internal void AssertCustomer(Customer customers, long id, int rank)
         {
-            Assert.Equal(id, customers.Id);
+            Assert.Equal(id, customers.CustomerID);
             Assert.Equal(rank, customers.Rank);
         }
 
@@ -59,7 +59,7 @@ namespace ScoresAndRanksTest
             InitData();
             Customer customer1 = new Customer
             {
-                Id = 1,
+                CustomerID = 1,
                 Score = 300,
                 Rank = 0
             };
@@ -98,15 +98,20 @@ namespace ScoresAndRanksTest
             InitData();
             Customer customer = new Customer
             {
-                Id = 65535,
+                CustomerID = 65535,
                 Score = -150,
                 Rank = 0
             };
             _service.InsertOrUpdateCustomer(customer);
             var customers = _service.GetByRank(1, 3);
-            Assert.NotNull(customers);
             Assert.Equal(3, customers.Count());
             AssertCustomer(customers[2], 65535, 3);
+            //if the customer's score is 0 or below, it should be removed from the list
+            customer.Score = -50;
+            _service.InsertOrUpdateCustomer(customer);
+            var customers2 = _service.GetByRank(1, 3);
+            Assert.Equal(2, customers2.Count());
+
 
         }
 
@@ -131,7 +136,7 @@ namespace ScoresAndRanksTest
             Assert.Empty(customers);
 
             Assert.Throws<OverflowException>(() => _service.InsertOrUpdateCustomer(new Customer {
-                Id = 1,
+                CustomerID = 1,
                 Score = long.MaxValue,
                 Rank = 1
             }));
