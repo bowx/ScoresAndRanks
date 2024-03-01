@@ -495,7 +495,7 @@ namespace ScoresAndRanks.DataType
                 while (prevNode != null && !prevNode.Value.isHeader && high > 0)
                 {
                     //don't show in the list if score is 0 or below
-                    if (prevNode.Value.Score <= 0){
+                    if (prevNode.Value.Score > 0){
                         preStack.Push(new ScoreRankModel { Id = prevNode.Value.Id, Score = prevNode.Value.Score, Rank = prevRank });
                     }
                     high--;

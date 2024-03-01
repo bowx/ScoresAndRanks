@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ScoresAndRanks.Services;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace ScoresAndRanks.Controllers
 {

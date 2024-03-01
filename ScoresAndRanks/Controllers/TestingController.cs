@@ -32,7 +32,7 @@ namespace ScoresAndRanks.Controllers
                 Customer customer = new Customer
                 {
                     CustomerID = i,
-                    Score = /*1100000 - i,*/ new Random().Next(10, 900000),//Insert from behind is more faster than randomly insert
+                    Score = /*1100000 - i,*/ new Random().Next(-1000, 1000),//Insert from behind is more faster than randomly insert
                     Rank = 0
                 };
                 _scoresAndRanksService.InsertOrUpdateCustomer(customer);
@@ -51,7 +51,7 @@ namespace ScoresAndRanks.Controllers
         {
             Customer customer = new Customer {
                 CustomerID = (ulong)new Random().Next(1000000, 5000000),
-                Score = new Random().Next(10, 900000),
+                Score = new Random().Next(-1000, 1000),
                 Rank = 0
 
             };
