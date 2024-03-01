@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection.PortableExecutable;
+using System.Xml.Linq;
 using static ScoresAndRanks.DataType.ConcurrentCustomerSkipList;
 
 namespace ScoresAndRanks.DataType
@@ -170,14 +171,11 @@ namespace ScoresAndRanks.DataType
         protected LinkedListNode<ScoreRankModel> Find(ScoreRankModel scoreRank)
         {
             LinkedListNode<ScoreRankModel> findNode = _topIndexList.First;
-            int rank = 0;
 
             while (findNode != null && findNode.Next != null)
             {
                 if (findNode.Next != null && findNode.Next.Value.CompareTo(scoreRank) < 0)
                 {
-                    //
-                    rank += findNode.Value.subCount;
                     findNode = findNode.Next;
                 }
                 else
@@ -194,7 +192,6 @@ namespace ScoresAndRanks.DataType
                     }
                 }
             }
-            //TODO update rank
             return findNode;
         }
 
@@ -300,18 +297,6 @@ namespace ScoresAndRanks.DataType
                             prevNode = prevNode.Previous;
                         }
                     }
-                    
-                    ////look forward for indexed node
-                    //while (prevNode.Value.upLevelNode == null)
-                    //{
-                    //    prevNode = prevNode.Previous;
-                    //}
-                    ////go up though for all indexes
-                    //while(prevNode.Value.upLevelNode != null)
-                    //{
-                    //    prevNode = prevNode.Value.upLevelNode;
-                    //    prevNode.Value.subCount--;
-                    //}
                 }
 
                 //update counter
@@ -409,6 +394,12 @@ namespace ScoresAndRanks.DataType
                             this.Remove(node);
                             _idMap[id] = this.Add(node.Value);
                             result.Score = node.Value.Score;
+                            result.Rank = GetRank(_idMap[id]);
+                        }
+                        else
+                        {
+                            //Get result directly
+                            result.Score = _idMap[id].Value.Score;
                             result.Rank = GetRank(_idMap[id]);
                         }
                     }

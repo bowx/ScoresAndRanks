@@ -58,19 +58,28 @@ namespace ScoresAndRanks.DataType
                     else 
                     {
                         //update
-                        //get score and old key
-                        var score = _idMapping[idScore.Id];
-                        var oldKey = new IdScoreStruct { Id = idScore.Id, Score = score };
-                        rwLock.EnterWriteLock();
-                        //calculate score, add checked in case of overflow
-                        checked { score += idScore.Score; }
-                        _idMapping.AddOrUpdate(idScore.Id, idScore.Score, (Id, Score) => { return score; });
-                        //key changed need to remove the old data
-                        _list.Remove(oldKey);
-                        _list.Add(new IdScoreStruct { Id = idScore.Id, Score = score }, true);
+                        if(idScore.Score == 0)
+                        {
+                            result.Score = _idMapping[idScore.Id];
+                            result.Rank = _list.IndexOfKey(idScore) + 1;
 
-                        result.Score = idScore.Score;
-                        result.Rank = _list.IndexOfKey(idScore) + 1;
+                        }
+                        else
+                        {
+                            //get score and old key
+                            var score = _idMapping[idScore.Id];
+                            var oldKey = new IdScoreStruct { Id = idScore.Id, Score = score };
+                            rwLock.EnterWriteLock();
+                            //calculate score, add checked in case of overflow
+                            checked { score += idScore.Score; }
+                            _idMapping.AddOrUpdate(idScore.Id, idScore.Score, (Id, Score) => { return score; });
+                            //key changed need to remove the old data
+                            _list.Remove(oldKey);
+                            _list.Add(new IdScoreStruct { Id = idScore.Id, Score = score }, true);
+
+                            result.Score = idScore.Score;
+                            result.Rank = _list.IndexOfKey(idScore) + 1;
+                        }
                     }
                 }
                 catch (Exception)
