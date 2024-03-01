@@ -45,7 +45,7 @@ namespace ScoresAndRanksTest
             _service.InsertOrUpdateCustomer(customer3);
         }
 
-        internal void AssertCustomer(Customer customers, long id, int rank)
+        internal void AssertCustomer(Customer customers, ulong id, int rank)
         {
             Assert.Equal(id, customers.CustomerID);
             Assert.Equal(rank, customers.Rank);

@@ -21,7 +21,7 @@ namespace ScoresAndRanks.Controllers
         }
 
         [HttpGet("{id}")]
-        public JsonResult GetById(long id, int? high, int? low) 
+        public JsonResult GetById(ulong id, int? high, int? low) 
         {
             var customers = _scoresAndRanksService.GetCustomer(id, high ?? 0, low ?? 0);
             return Json(customers);

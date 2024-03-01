@@ -19,7 +19,7 @@ namespace ScoresAndRanks.Services
             return result;
         }
 
-        public List<Customer> GetCustomer(long id, int high, int low)
+        public List<Customer> GetCustomer(ulong id, int high, int low)
         {
             var result = new List<Customer>();
             if(!_customerList.ContainsId(id)) return result;
@@ -35,9 +35,10 @@ namespace ScoresAndRanks.Services
             return result;
         }
 
-        public void InsertOrUpdateCustomer(Customer customer)
+        public Customer InsertOrUpdateCustomer(Customer customer)
         {
-            _customerList.AddOrUpdate(customer.CustomerID, customer.Score);
+            if (customer.Score > 1000 || customer.Score < -1000) throw new Exception("Invalid parameters.");
+            return _customerList.AddOrUpdate(customer.CustomerID, customer.Score);
         }
     }
 }

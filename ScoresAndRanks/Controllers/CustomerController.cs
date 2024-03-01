@@ -16,13 +16,21 @@ namespace ScoresAndRanks.Controllers
             _scoresAndRanksService = scoresAndRanksService;
         }
 
-        [HttpPost("/customer/{customerId}/score/{score}")]
-        public ActionResult UpdateAndCreate(long customerId, long score )
+        [HttpPost("/customer/{customerId}/score/{score?}")]
+        public JsonResult UpdateAndCreate(ulong customerId, long? score )
         {
-            _scoresAndRanksService.InsertOrUpdateCustomer(new Customer { CustomerID = customerId, Score = score});    
-            return NoContent();
+            score = score ?? 0;
+            var customer = _scoresAndRanksService.InsertOrUpdateCustomer(new Customer { CustomerID = customerId, Score = (long)score});
+            return Json(customer);
         }
 
-        
+        [HttpPost("/customer/{customerId}")]
+        public JsonResult UpdateAndCreate(ulong customerId)
+        {
+            long score = 0;
+            var customer = _scoresAndRanksService.InsertOrUpdateCustomer(new Customer { CustomerID = customerId, Score = score });
+            return Json(customer);
+        }
+
     }
 }

@@ -27,7 +27,7 @@ namespace ScoresAndRanks.Controllers
 
             Stopwatch sw = new Stopwatch();
             sw.Start();
-            for (int i = 0; i <= 1000000; i++)
+            for (ulong i = 0; i <= 1000000; i++)
             {
                 Customer customer = new Customer
                 {
@@ -50,7 +50,7 @@ namespace ScoresAndRanks.Controllers
         public ActionResult<int> RandomUpdateAndCreate()
         {
             Customer customer = new Customer {
-                CustomerID = new Random().Next(1000000, 5000000),
+                CustomerID = (ulong)new Random().Next(1000000, 5000000),
                 Score = new Random().Next(10, 900000),
                 Rank = 0
 

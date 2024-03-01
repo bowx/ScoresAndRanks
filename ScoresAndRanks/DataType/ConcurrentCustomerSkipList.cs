@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection.PortableExecutable;
 using static ScoresAndRanks.DataType.ConcurrentCustomerSkipList;
@@ -13,7 +14,7 @@ namespace ScoresAndRanks.DataType
         private LinkedList<ScoreRankModel> _linkList;
         private LinkedList<ScoreRankModel> _topIndexList;
         //Dictionary for quick access link node by customer id
-        private ConcurrentDictionary<long, LinkedListNode<ScoreRankModel>> _idMap;
+        private ConcurrentDictionary<ulong, LinkedListNode<ScoreRankModel>> _idMap;
 
         private static ReaderWriterLockSlim rwLock = new ReaderWriterLockSlim();
 
@@ -34,9 +35,9 @@ namespace ScoresAndRanks.DataType
             public int subCount = 1;
             public bool isHeader = false;
 
-            public long Id;
+            public ulong Id;
             public long Score;
-            public int Rank;//? remove
+            public int Rank;
 
 
             public int CompareTo(ScoreRankModel? other)
@@ -57,7 +58,7 @@ namespace ScoresAndRanks.DataType
             _topIndexList = new LinkedList<ScoreRankModel>();
             _linkList.AddFirst(new ScoreRankModel
             {
-                Id = long.MinValue,
+                Id = ulong.MinValue,
                 Score = long.MaxValue,
                 isHeader = true,
                 subCount = 0,//the header node 's subCount in link should be 0 
@@ -65,14 +66,14 @@ namespace ScoresAndRanks.DataType
             });
             _topIndexList.AddFirst(new ScoreRankModel
             {
-                Id = long.MinValue,
+                Id = ulong.MinValue,
                 Score = long.MaxValue,
                 isHeader = true,
                 subCount = 0,
                 lowLevelNode = _linkList.First
             });
             _linkList.First.Value.upLevelNode = _topIndexList.First;
-            _idMap = new ConcurrentDictionary<long, LinkedListNode<ScoreRankModel>>();
+            _idMap = new ConcurrentDictionary<ulong, LinkedListNode<ScoreRankModel>>();
             levels = 1;
             size = 0;
             random = new Random();
@@ -270,7 +271,11 @@ namespace ScoresAndRanks.DataType
                     prevNode = node.Previous;
 
                     node.List.Remove(node);
-
+                    //remove the pointer for the lower node as well
+                    if(node.Value.lowLevelNode != null)
+                    {
+                        node.Value.lowLevelNode.Value.upLevelNode = null;
+                    }
                     //recount subCount for prev node
                     if(prevNode != null)
                     {
@@ -352,7 +357,7 @@ namespace ScoresAndRanks.DataType
                 }
                 newIndexList.AddFirst(new ScoreRankModel
                 {
-                    Id = long.MinValue,
+                    Id = ulong.MinValue,
                     Score = long.MaxValue,
                     isHeader = true,
                     subCount = totalSubCount,
@@ -372,12 +377,13 @@ namespace ScoresAndRanks.DataType
         /// </summary>
         /// <param name="id"></param>
         /// <param name="score"></param>
-        public void AddOrUpdate(long id, long score)
+        public Customer AddOrUpdate(UInt64 id, long score)
         {
             try
             {
+                Customer result = new Customer();
+                result.CustomerID = id;
                 rwLock.EnterUpgradeableReadLock();
-
                 try
                 {
                     rwLock.EnterWriteLock();
@@ -386,6 +392,8 @@ namespace ScoresAndRanks.DataType
                     {
                         var node = Add(new ScoreRankModel { Id = id, Score = score });
                         _idMap.AddOrUpdate(node.Value.Id, node, (Id, Node) => { return node; });
+                        result.Score = score;
+                        result.Rank = GetRank(node);
                     }
                     else
                     {
@@ -398,29 +406,19 @@ namespace ScoresAndRanks.DataType
                             {
                                 node.Value.Score += score;
                             }
-                            //delete if the final score is negative or zore
-                            if(node.Value.Score <= 0)
-                            {
-                                this.Remove(node);
-                                _idMap.TryRemove(id, out _);
-
-                            }
-                            else
-                            {
-                                this.Remove(node);
-                                _idMap[id] = this.Add(node.Value);
-
-                            }
+                            this.Remove(node);
+                            _idMap[id] = this.Add(node.Value);
+                            result.Score = node.Value.Score;
+                            result.Rank = GetRank(_idMap[id]);
                         }
                     }
-
                 }
                 catch (Exception)
                 {
                     throw;
                 }
                 finally { rwLock.ExitWriteLock();}
-
+                return result;
             }
             catch (Exception)
             {
@@ -451,6 +449,8 @@ namespace ScoresAndRanks.DataType
                 var startNode = FindByRank(start);
                 for(int i = start; i <= end; i++)
                 {
+                    //don't show in the list if score is 0 or below
+                    if (startNode.Value.Score <= 0) break;
                     result.Add(new Customer { 
                         CustomerID = startNode.Value.Id,
                         Score = startNode.Value.Score,
@@ -479,7 +479,7 @@ namespace ScoresAndRanks.DataType
         /// <param name="high"></param>
         /// <param name="low"></param>
         /// <returns></returns>
-        public List<ScoreRankModel> GetByWindow(long currentId, int high, int low)
+        public List<ScoreRankModel> GetByWindow(ulong currentId, int high, int low)
         {
             try
             {
@@ -489,25 +489,40 @@ namespace ScoresAndRanks.DataType
                 var rank = GetRank(node);
                 var result = new List<ScoreRankModel>();
                 //upward search
+                Stack<ScoreRankModel> preStack = new Stack<ScoreRankModel>();
                 var prevNode = node.Previous;
                 var prevRank = rank - 1;
                 while (prevNode != null && !prevNode.Value.isHeader && high > 0)
                 {
-                    result.Add(new ScoreRankModel { Id = prevNode.Value.Id, Score = prevNode.Value.Score, Rank = prevRank });
+                    //don't show in the list if score is 0 or below
+                    if (prevNode.Value.Score <= 0){
+                        preStack.Push(new ScoreRankModel { Id = prevNode.Value.Id, Score = prevNode.Value.Score, Rank = prevRank });
+                    }
                     high--;
                     prevRank--;
                     prevNode = prevNode.Previous;
                 }
-                result.Add(new ScoreRankModel { Id = node.Value.Id, Score = node.Value.Score, Rank = rank });
-                //downward search
-                var nextNode = node.Next;
-                var nextRank = rank + 1;
-                while (nextNode != null && low > 0)
+                ScoreRankModel stackItem;
+                while (preStack.TryPop(out stackItem))
                 {
-                    result.Add(new ScoreRankModel { Id = nextNode.Value.Id, Score = nextNode.Value.Score, Rank = nextRank });
-                    low--;
-                    nextRank++;
-                    nextNode = nextNode.Next;
+                    result.Add(stackItem);
+                }
+                //don't show in the list if score is 0 or below
+                if (node.Value.Score > 0)
+                {
+                    result.Add(new ScoreRankModel { Id = node.Value.Id, Score = node.Value.Score, Rank = rank });
+                    //downward search
+                    var nextNode = node.Next;
+                    var nextRank = rank + 1;
+                    while (nextNode != null && low > 0)
+                    {
+                        //don't show in the list if score is 0 or below
+                        if(nextNode.Value.Score <= 0) { break; }
+                        result.Add(new ScoreRankModel { Id = nextNode.Value.Id, Score = nextNode.Value.Score, Rank = nextRank });
+                        low--;
+                        nextRank++;
+                        nextNode = nextNode.Next;
+                    }
                 }
 
                 return result;
@@ -527,105 +542,10 @@ namespace ScoresAndRanks.DataType
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        public bool ContainsId(long id)
+        public bool ContainsId(ulong id)
         {
             return _idMap.ContainsKey(id);
         }
-
-        #region Methods for traversing
-        private void InverseInsertNode(LinkedListNode<ScoreRankModel> node, LinkedListNode<ScoreRankModel>? currentNode)
-        {
-            while (currentNode != null)
-            {
-                //compare for score and id
-                if (currentNode.Value.Score < node.Value.Score || (currentNode.Value.Score == node.Value.Score && currentNode.Value.Id > node.Value.Id))
-                {
-                    //the given node is rank ahead, and the current node rank should +1 
-                    currentNode.Value.Rank++;
-                    currentNode = currentNode.Previous;
-                    continue;
-                }
-                else
-                {
-                    //the given node is just behind the current node, the rank of given node should be current node rank + 1
-                    node.Value.Rank = currentNode.Value.Rank + 1;
-                    _linkList.AddAfter(currentNode, node);
-                    _idMap.AddOrUpdate(node.Value.Id, node, (Id, Node) => { return node; });
-                    break;
-                }
-            }
-            //Add to first
-            if (null == currentNode)
-            {
-                node.Value.Rank = 1;
-                _linkList.AddFirst(node);
-                _idMap.AddOrUpdate(node.Value.Id, node, (Id, Node) => { return node; });
-            }
-        }
-
-        private void ForwardInsertNode(LinkedListNode<ScoreRankModel> node, LinkedListNode<ScoreRankModel>? currentNode)
-        {
-            while (currentNode != null)
-            {
-                //compare for score and id
-                if (currentNode.Value.Score > node.Value.Score || (currentNode.Value.Score == node.Value.Score && currentNode.Value.Id < node.Value.Id))
-                {
-                    //the given node is moving backward, the rank of current -1
-                    currentNode.Value.Rank--;
-                    currentNode = currentNode.Next;
-                    continue;
-                }
-                else
-                {
-                    //find the position for given node, and the rank should be current -1
-                    node.Value.Rank = currentNode.Value.Rank - 1;
-                    _linkList.AddBefore(currentNode, node);
-                    _idMap.AddOrUpdate(node.Value.Id, node, (Id, Node) => { return node; });
-                    break;
-                }
-            }
-            //Add to last
-            if (null == currentNode)
-            {
-                node.Value.Rank = _idMap.Count;
-                _linkList.AddLast(node);
-                _idMap.AddOrUpdate(node.Value.Id, node, (Id, Node) => { return node; });
-            }
-
-        }
-
-        private LinkedListNode<ScoreRankModel>? FetchNodeByRank(int rank)
-        {
-            //decides the direction by rank
-            if (rank > (_idMap.Count / 2))
-            {
-                var node = _linkList.Last;
-                while (node != null)
-                {
-                    if (node.Value.Rank == rank) break;
-                    else
-                    {
-                        node = node.Previous;
-                    }
-                }
-                return node;
-            }
-            else
-            {
-                var node = _linkList.First;
-                while (node != null)
-                {
-                    if (node.Value.Rank == rank) break;
-                    else
-                    {
-                        node = node.Next;
-                    }
-                }
-                return node;
-            }
-        }
-        #endregion
-
 
 
     }

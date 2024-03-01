@@ -2,19 +2,20 @@
 using ScoresAndRanks.Models;
 using System.Collections.Concurrent;
 using System.Globalization;
+using System.Xml.Linq;
 
 namespace ScoresAndRanks.DataType
 {
     public class ConcurrentCustomerSortedList
     {
         private SortedList<IdScoreStruct, bool> _list;
-        private ConcurrentDictionary<long, long> _idMapping;
+        private ConcurrentDictionary<ulong, long> _idMapping;
 
         private static ReaderWriterLockSlim rwLock = new ReaderWriterLockSlim();
 
         public ConcurrentCustomerSortedList() 
         {
-            _idMapping = new ConcurrentDictionary<long, long>();
+            _idMapping = new ConcurrentDictionary<ulong, long>();
             _list = new SortedList<IdScoreStruct, bool>(
                 Comparer<IdScoreStruct>.Create(
                     (x, y) =>
@@ -25,16 +26,18 @@ namespace ScoresAndRanks.DataType
         }
 
         public struct IdScoreStruct
-        { public long Id; public long Score; }
+        { public ulong Id; public long Score; }
 
         /// <summary>
         /// Add or update with reader and writer lock
         /// </summary>
         /// <param name="idScore"></param>
-        public void AddOrUpdate(IdScoreStruct idScore) 
+        public Customer AddOrUpdate(IdScoreStruct idScore) 
         {
             try
             {
+                Customer result = new Customer();
+                result.CustomerID = idScore.Id;
                 rwLock.EnterUpgradeableReadLock();
                 try
                 {
@@ -48,6 +51,9 @@ namespace ScoresAndRanks.DataType
                             Id = idScore.Id,
                             Score = idScore.Score
                         }, true);
+
+                        result.Score = idScore.Score;
+                        result.Rank = _list.IndexOfKey(idScore) + 1;
                     }
                     else 
                     {
@@ -58,20 +64,13 @@ namespace ScoresAndRanks.DataType
                         rwLock.EnterWriteLock();
                         //calculate score, add checked in case of overflow
                         checked { score += idScore.Score; }
-                        //delete if the final score is negative or zore
-                        if(score <= 0)
-                        {
-                            _list.Remove(oldKey);
-                            _idMapping.TryRemove(idScore.Id, out _);
-                        }
-                        else
-                        {
-                            _idMapping.AddOrUpdate(idScore.Id, idScore.Score, (Id, Score) => { return score; });
-                            //key changed need to remove the old data
-                            _list.Remove(oldKey);
-                            _list.Add(new IdScoreStruct { Id = idScore.Id, Score = score }, true);
+                        _idMapping.AddOrUpdate(idScore.Id, idScore.Score, (Id, Score) => { return score; });
+                        //key changed need to remove the old data
+                        _list.Remove(oldKey);
+                        _list.Add(new IdScoreStruct { Id = idScore.Id, Score = score }, true);
 
-                        }
+                        result.Score = idScore.Score;
+                        result.Rank = _list.IndexOfKey(idScore) + 1;
                     }
                 }
                 catch (Exception)
@@ -79,6 +78,7 @@ namespace ScoresAndRanks.DataType
                     throw;
                 }
                 finally { rwLock.ExitWriteLock();}
+                return result;
             }
             catch (Exception)
             {
@@ -118,7 +118,7 @@ namespace ScoresAndRanks.DataType
         /// <param name="high"></param>
         /// <param name="low"></param>
         /// <returns></returns>
-        public SortedDictionary<int, IdScoreStruct> GetByWindow(long currentId, int high, int low)
+        public SortedDictionary<int, IdScoreStruct> GetByWindow(ulong currentId, int high, int low)
         {
             try
             {
@@ -194,7 +194,7 @@ namespace ScoresAndRanks.DataType
         /// </summary>
         /// <param name="id"></param>
         /// <returns>Struct with id and score</returns>
-        public IdScoreStruct GetById(long id)
+        public IdScoreStruct GetById(ulong id)
         {
             return new IdScoreStruct { Id = id, Score = _idMapping[id] };
         }
@@ -204,7 +204,7 @@ namespace ScoresAndRanks.DataType
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        public bool ContainsId(long id)
+        public bool ContainsId(ulong id)
         {
             return _idMapping.ContainsKey(id);  
         }
@@ -221,6 +221,9 @@ namespace ScoresAndRanks.DataType
 
             for (int i = start; i <= end; i++)
             {
+                //don't show in the list if score is 0 or below
+                var item = _list.GetKeyAtIndex(i - 1);
+                if (item.Score <= 0) break;
                 result.Add(i, _list.GetKeyAtIndex(i - 1));
             }
             return result;
