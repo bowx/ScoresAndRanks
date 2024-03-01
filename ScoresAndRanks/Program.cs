@@ -8,7 +8,8 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddSingleton<IScoresAndRanksService, SortedListService>();
+builder.Services.AddSingleton<IScoresAndRanksService, SkipListService>();
+//builder.Services.AddSingleton<IScoresAndRanksService, SortedListService>();
 //builder.Services.AddSingleton<IScoresAndRanksService, LinkListService>();
 
 var app = builder.Build();

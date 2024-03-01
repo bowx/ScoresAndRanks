@@ -1,7 +1,8 @@
 ### Project for EveryMatrix interview
-There are two services using different data structure：
+There are three services using different data structure：
+- SkipListService is using SkipList
 - SortedListService is using SortedList
 - LinkListService is using LinkList
 
-Default is SortedListService which have better insert and update performance
+SkipList have similar read performance with  SortedList but the write performance is much better.
   
