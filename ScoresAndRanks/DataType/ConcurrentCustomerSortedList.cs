@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.DataProtection.KeyManagement;
+using ScoresAndRanks.ExceptionHandler;
 using ScoresAndRanks.Models;
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Xml.Linq;
+using static ScoresAndRanks.ExceptionHandler.ScoresAndRanksException;
 
 namespace ScoresAndRanks.DataType
 {
@@ -32,44 +34,34 @@ namespace ScoresAndRanks.DataType
         /// Add or update with reader and writer lock
         /// </summary>
         /// <param name="idScore"></param>
-        public Customer AddOrUpdate(IdScoreStruct idScore) 
+        /// <returns></returns>
+        public long AddOrUpdate(IdScoreStruct idScore) 
         {
             try
             {
-                Customer result = new Customer();
-                result.CustomerID = idScore.Id;
+                long result = 0;
                 rwLock.EnterUpgradeableReadLock();
-                try
+                bool isUpdate = _idMapping.ContainsKey(idScore.Id);
+                //if id is exist and socre is 0, no update
+                if (!isUpdate || idScore.Score != 0)
                 {
-                    if (!_idMapping.ContainsKey(idScore.Id))
+                    EnterWriteLock(() =>
                     {
-                        //insert
-                        rwLock.EnterWriteLock();
-                        _idMapping.AddOrUpdate(idScore.Id, idScore.Score, (Id, Score) => { return idScore.Score; });
-                        _list.Add(new IdScoreStruct
+                        //double check id exist
+                        if (!_idMapping.ContainsKey(idScore.Id))
                         {
-                            Id = idScore.Id,
-                            Score = idScore.Score
-                        }, true);
-
-                        result.Score = idScore.Score;
-                        result.Rank = _list.IndexOfKey(idScore) + 1;
-                    }
-                    else 
-                    {
-                        //update
-                        if(idScore.Score == 0)
-                        {
-                            result.Score = _idMapping[idScore.Id];
-                            result.Rank = _list.IndexOfKey(idScore) + 1;
-
+                            _idMapping.AddOrUpdate(idScore.Id, idScore.Score, (Id, Score) => { return idScore.Score; });
+                            _list.Add(new IdScoreStruct
+                            {
+                                Id = idScore.Id,
+                                Score = idScore.Score
+                            }, true);
                         }
                         else
                         {
                             //get score and old key
                             var score = _idMapping[idScore.Id];
                             var oldKey = new IdScoreStruct { Id = idScore.Id, Score = score };
-                            rwLock.EnterWriteLock();
                             //calculate score, add checked in case of overflow
                             checked { score += idScore.Score; }
                             _idMapping.AddOrUpdate(idScore.Id, idScore.Score, (Id, Score) => { return score; });
@@ -77,16 +69,10 @@ namespace ScoresAndRanks.DataType
                             _list.Remove(oldKey);
                             _list.Add(new IdScoreStruct { Id = idScore.Id, Score = score }, true);
 
-                            result.Score = idScore.Score;
-                            result.Rank = _list.IndexOfKey(idScore) + 1;
                         }
-                    }
+                    });
                 }
-                catch (Exception)
-                {
-                    throw;
-                }
-                finally { rwLock.ExitWriteLock();}
+                result = _idMapping[idScore.Id];
                 return result;
             }
             catch (Exception)
@@ -94,6 +80,25 @@ namespace ScoresAndRanks.DataType
                 throw;
             }
             finally { rwLock.ExitUpgradeableReadLock(); }
+        }
+
+
+        private void EnterWriteLock(Action action)
+        {
+            try
+            {
+                rwLock.EnterWriteLock();
+                action();
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+            finally
+            {
+                rwLock.ExitWriteLock();
+            }
         }
 
         /// <summary>
@@ -223,7 +228,7 @@ namespace ScoresAndRanks.DataType
         {
             var result = new SortedDictionary<int, IdScoreStruct>();
             //argument check
-            if (end < start) throw new Exception("Invalid parameters.");
+            if (start > end) throw new ScoresAndRanksException(ScoresAndRanksExceptionType.END_LESS_THAN_START);
             if (start > _idMapping.Count) return result;
             if (start <= 0) start = 1;
             if (end > _idMapping.Count) end = _idMapping.Count;

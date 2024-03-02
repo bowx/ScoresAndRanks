@@ -1,4 +1,5 @@
-﻿using ScoresAndRanks.Models;
+﻿using ScoresAndRanks.ExceptionHandler;
+using ScoresAndRanks.Models;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -7,6 +8,7 @@ using System.Globalization;
 using System.Reflection.PortableExecutable;
 using System.Xml.Linq;
 using static ScoresAndRanks.DataType.ConcurrentCustomerSkipList;
+using static ScoresAndRanks.ExceptionHandler.ScoresAndRanksException;
 
 namespace ScoresAndRanks.DataType
 {
@@ -43,6 +45,7 @@ namespace ScoresAndRanks.DataType
 
             public int CompareTo(ScoreRankModel? other)
             {
+                if(other == null) return -1;
                 //header always be first
                 if(other.isHeader) return 1;
                 if(this.isHeader) return -1;
@@ -57,6 +60,7 @@ namespace ScoresAndRanks.DataType
         {
             _linkList = new LinkedList<ScoreRankModel>();
             _topIndexList = new LinkedList<ScoreRankModel>();
+            //build header node and index
             _linkList.AddFirst(new ScoreRankModel
             {
                 Id = ulong.MinValue,
@@ -81,7 +85,8 @@ namespace ScoresAndRanks.DataType
 
         }
 
-
+        //Key function of skiplist, Get index levels with probability
+        //level 1 is 1/_skiplist_p, level 2 is 1/(_skiplist_p^2) ...
         protected int getRandomLevels()
         {
             int newLevels = 0;
@@ -199,7 +204,7 @@ namespace ScoresAndRanks.DataType
         {
             int rank = 1;
             //only support the node at bottom
-            if (node.Value.lowLevelNode != null) throw new Exception("Invalid parameters.");
+            if (node.Value.lowLevelNode != null) throw new ScoresAndRanksException(ScoresAndRanksExceptionType.INDEX_NODE_NOT_SUPPORT);
             var pointNode = node;
             while(pointNode != null)
             {
@@ -306,6 +311,7 @@ namespace ScoresAndRanks.DataType
             }
         }
 
+        //recount the subCount for index node
         private int Recount(LinkedListNode<ScoreRankModel> node)
         {
             if (node.Value.lowLevelNode == null)
@@ -329,6 +335,7 @@ namespace ScoresAndRanks.DataType
             }
         }
 
+        //create empty new level index
         private void CreateLevels(int nodeLevel)
         {
             int newLevel = nodeLevel - this.levels;
@@ -362,54 +369,43 @@ namespace ScoresAndRanks.DataType
         /// </summary>
         /// <param name="id"></param>
         /// <param name="score"></param>
-        public Customer AddOrUpdate(UInt64 id, long score)
+        /// <returns></returns>
+        public long AddOrUpdate(ulong id, long score)
         {
+            long result = 0;
+            LinkedListNode<ScoreRankModel> node = null;
             try
             {
-                Customer result = new Customer();
-                result.CustomerID = id;
                 rwLock.EnterUpgradeableReadLock();
-                try
+                bool isUpdate = _idMap.ContainsKey(id);
+                //if id is exist and socre is 0, no update
+                if (!isUpdate || score != 0)
                 {
-                    rwLock.EnterWriteLock();
-
-                    if (!_idMap.ContainsKey(id))
+                    EnterWriteLock(() =>
                     {
-                        var node = Add(new ScoreRankModel { Id = id, Score = score });
-                        _idMap.AddOrUpdate(node.Value.Id, node, (Id, Node) => { return node; });
-                        result.Score = score;
-                        result.Rank = GetRank(node);
-                    }
-                    else
-                    {
-                        //update
-                        if(score != 0)
+                        //double check id exist
+                        if (!_idMap.ContainsKey(id))
                         {
-                            var node = _idMap[id];
-                            //checked in case of overflow
-                            checked
-                            {
-                                node.Value.Score += score;
-                            }
-                            this.Remove(node);
-                            _idMap[id] = this.Add(node.Value);
-                            result.Score = node.Value.Score;
-                            result.Rank = GetRank(_idMap[id]);
+                            //insert
+                            node = Add(new ScoreRankModel { Id = id, Score = score });
+                            _idMap.AddOrUpdate(node.Value.Id, node, (Id, Node) => { return node; });
                         }
                         else
                         {
-                            //Get result directly
-                            result.Score = _idMap[id].Value.Score;
-                            result.Rank = GetRank(_idMap[id]);
+                            //update
+                            node = _idMap[id];
+                            checked{ node.Value.Score += score;}
+                            this.Remove(node);
+                            _idMap[id] = this.Add(node.Value);
                         }
-                    }
+                    });
                 }
-                catch (Exception)
+                else
                 {
-                    throw;
+                    node = _idMap[id];
                 }
-                finally { rwLock.ExitWriteLock();}
-                return result;
+
+                result = node.Value.Score;
             }
             catch (Exception)
             {
@@ -418,6 +414,25 @@ namespace ScoresAndRanks.DataType
             finally
             {
                 rwLock.ExitUpgradeableReadLock();
+            }
+            return result;
+        }
+
+        private void EnterWriteLock(Action action)
+        {
+            try
+            {
+                rwLock.EnterWriteLock();
+                action();
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+            finally 
+            { 
+                rwLock.ExitWriteLock();
             }
         }
 
@@ -431,7 +446,7 @@ namespace ScoresAndRanks.DataType
         {
 
             var result = new List<Customer>();
-            if (end < start) throw new Exception("Invalid parameters.");
+            if (start > end) throw new ScoresAndRanksException(ScoresAndRanksExceptionType.END_LESS_THAN_START);
             if (start > _idMap.Count) return result;
             if (start <= 0) start = 1;
             try

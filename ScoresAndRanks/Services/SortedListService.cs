@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc.Formatters;
 using ScoresAndRanks.Models;
 using ScoresAndRanks.DataType;
+using ScoresAndRanks.ExceptionHandler;
+using static ScoresAndRanks.ExceptionHandler.ScoresAndRanksException;
 
 namespace ScoresAndRanks.Services
 {
@@ -47,9 +49,9 @@ namespace ScoresAndRanks.Services
             return result;
         }
 
-        public Customer InsertOrUpdateCustomer(Customer customer)
+        public long InsertOrUpdateCustomer(Customer customer)
         {
-            if (customer.Score > 1000 || customer.Score < -1000) throw new Exception("Invalid parameters.");
+            if (customer.Score > 1000 || customer.Score < -1000) throw new ScoresAndRanksException(ScoresAndRanksExceptionType.SCORE_OUT_OF_RANGE);
             return _customerList.AddOrUpdate(new ConcurrentCustomerSortedList.IdScoreStruct { Id = customer.CustomerID, Score = customer.Score });
         }
 

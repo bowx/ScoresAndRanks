@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ScoresAndRanks.Services;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -16,7 +17,7 @@ namespace ScoresAndRanks.Controllers
         }
 
         [HttpGet]
-        public JsonResult GetByRank(int start, int end) 
+        public JsonResult GetByRank([Required] int start, [Required] int end) 
         {
             var customers = _scoresAndRanksService.GetByRank(start, end);
             return Json(customers);
