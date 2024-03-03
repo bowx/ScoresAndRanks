@@ -23,18 +23,8 @@ namespace ScoresAndRanks.Services
 
         public List<Customer> GetCustomer(ulong id, int high, int low)
         {
-            var result = new List<Customer>();
-            if(!_customerList.ContainsId(id)) return result;
-            foreach (var customer in _customerList.GetByWindow(id, high, low))
-            {
-                result.Add(new Customer
-                {
-                    CustomerID = customer.Id,
-                    Score = customer.Score,
-                    Rank = customer.Rank
-                });
-            }
-            return result;
+            if(!_customerList.ContainsId(id)) return new List<Customer>();
+            return _customerList.GetByWindow(id, high, low);
         }
 
         public long InsertOrUpdateCustomer(Customer customer)

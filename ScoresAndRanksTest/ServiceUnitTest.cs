@@ -1,5 +1,6 @@
 using ScoresAndRanks.Services;
 using ScoresAndRanks.Models;
+using ScoresAndRanks.ExceptionHandler;
 
 namespace ScoresAndRanksTest
 {
@@ -11,38 +12,30 @@ namespace ScoresAndRanksTest
         {
             
         }
-
-        /* id       score       rank
-         * 87982    300         1
-         * 65535    200         2
-         * 1        100         3
-         */
+        
         internal void InitData()
         {
             //_service = new SortedListService();
             _service = new SkipListService();
 
-            Customer customer1 = new Customer
-            {
-                CustomerID = 1,
-                Score = 100,
-                Rank = 0
-            };
-            Customer customer2 = new Customer
-            {
-                CustomerID = 65535,
-                Score = 200,
-                Rank = 0
-            };
-            Customer customer3 = new Customer
-            {
-                CustomerID = 87982,
-                Score = 300,
-                Rank = 0
-            };
-            _service.InsertOrUpdateCustomer(customer1);
-            _service.InsertOrUpdateCustomer(customer2);
-            _service.InsertOrUpdateCustomer(customer3);
+            CreateCustomer(15514665, 124);
+            CreateCustomer(81546541, 113);
+            CreateCustomer(1745431, 100);
+            CreateCustomer(76786448, 100);
+            CreateCustomer(254814111, 96);
+            CreateCustomer(53274324, 95);
+            CreateCustomer(6144320, 93);
+            CreateCustomer(8009471, 93);
+            CreateCustomer(11028481, 93);
+            CreateCustomer(38819, 92);
+        }
+
+        internal void CreateCustomer(ulong id, long score)
+        {
+            _service.InsertOrUpdateCustomer(new Customer {
+                CustomerID= id,
+                Score = score
+            });
         }
 
         internal void AssertCustomer(Customer customers, ulong id, int rank)
@@ -58,23 +51,22 @@ namespace ScoresAndRanksTest
             InitData();
             Customer customer1 = new Customer
             {
-                CustomerID = 1,
+                CustomerID = 254814111,
                 Score = 300,
                 Rank = 0
             };
-            //update, customer1's score should be 400
+            //update, customer1's score should be 396
             _service.InsertOrUpdateCustomer(customer1);
 
             // Act
-            var customers = _service.GetCustomer(87982, 1, 1);
-
+            var customers = _service.GetCustomer(254814111, 1, 3);
 
             // Assert
             Assert.NotNull(customers);
-            Assert.Equal(3, customers.Count());
-            AssertCustomer(customers[0], 1, 1);
-            AssertCustomer(customers[1], 87982, 2);
-            AssertCustomer(customers[2], 65535, 3);
+            Assert.Equal(4, customers.Count());
+            AssertCustomer(customers[0], 254814111, 1);
+            AssertCustomer(customers[1], 15514665, 2);
+            AssertCustomer(customers[2], 81546541, 3);
 
         }
 
@@ -82,12 +74,12 @@ namespace ScoresAndRanksTest
         public void TestGetByRank() 
         { 
             InitData();
-            var customers =  _service.GetByRank(1, 3);
+            var customers =  _service.GetByRank(2, 4);
             Assert.NotNull(customers);
             Assert.Equal(3, customers.Count());
-            AssertCustomer(customers[0], 87982, 1);
-            AssertCustomer(customers[1], 65535, 2);
-            AssertCustomer(customers[2], 1, 3);
+            AssertCustomer(customers[0], 81546541, 2);
+            AssertCustomer(customers[1], 1745431, 3);
+            AssertCustomer(customers[2], 76786448, 4);
 
         }
 
@@ -97,20 +89,19 @@ namespace ScoresAndRanksTest
             InitData();
             Customer customer = new Customer
             {
-                CustomerID = 65535,
-                Score = -150,
+                CustomerID = 15514665,
+                Score = -25,
                 Rank = 0
             };
             _service.InsertOrUpdateCustomer(customer);
-            var customers = _service.GetByRank(1, 3);
-            Assert.Equal(3, customers.Count());
-            AssertCustomer(customers[2], 65535, 3);
+            var customers = _service.GetByRank(1, 4);
+            Assert.Equal(4, customers.Count());
+            AssertCustomer(customers[3], 15514665, 4);
             //if the customer's score is 0 or below, it should be removed from the list
-            customer.Score = -50;
+            customer.Score = -100;
             _service.InsertOrUpdateCustomer(customer);
-            var customers2 = _service.GetByRank(1, 3);
-            Assert.Equal(2, customers2.Count());
-
+            var customers2 = _service.GetByRank(1, 10);
+            Assert.Equal(9, customers2.Count());
 
         }
 
@@ -120,26 +111,26 @@ namespace ScoresAndRanksTest
             InitData();
             var customers = _service.GetByRank(9000, 10000);
             Assert.Empty(customers);
-            Assert.Throws<Exception>(() => _service.GetByRank(10, 5));
+            Assert.Throws<ScoresAndRanksException>(() => _service.GetByRank(10, 5));
             customers = _service.GetByRank(1, 10000);
-            Assert.Equal(3, customers.Count());
+            Assert.Equal(10, customers.Count());
             customers = _service.GetByRank(0, 3);
             Assert.Equal(3, customers.Count());
 
-            customers = _service.GetCustomer(65535, 100, 100);
-            Assert.Equal(3, customers.Count());
-            customers = _service.GetCustomer(65535, -100, -100);
+            customers = _service.GetCustomer(254814111, 100, 100);
+            Assert.Equal(10, customers.Count());
+            customers = _service.GetCustomer(254814111, -100, -100);
             Assert.Single(customers);
 
             customers = _service.GetCustomer(12345, 0, 0);
             Assert.Empty(customers);
 
-            Assert.Throws<Exception>(() => _service.InsertOrUpdateCustomer(new Customer {
+            Assert.Throws<ScoresAndRanksException>(() => _service.InsertOrUpdateCustomer(new Customer {
                 CustomerID = 1,
                 Score = 1001,
                 Rank = 1
             }));
-            Assert.Throws<Exception>(() => _service.InsertOrUpdateCustomer(new Customer
+            Assert.Throws<ScoresAndRanksException>(() => _service.InsertOrUpdateCustomer(new Customer
             {
                 CustomerID = 1,
                 Score = -1001,
