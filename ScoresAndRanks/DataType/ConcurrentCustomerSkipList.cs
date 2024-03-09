@@ -18,6 +18,8 @@ namespace ScoresAndRanks.DataType
         private SkipList<ComparableCustomer> _skipList;
         //Dictionary for quick access link node by customer id
         private Dictionary<ulong, SkipListNode<ComparableCustomer>> _idMap;
+        //init capacity for dictionary, use the closest dictionary bucket size in case of dictionary resize
+        private readonly int _initDictionarySize = 1162687;
 
         private static ReaderWriterLockSlim rwLock = new ReaderWriterLockSlim();
 
@@ -41,7 +43,7 @@ namespace ScoresAndRanks.DataType
         public ConcurrentCustomerSkipList()
         {
             _skipList = new SkipList<ComparableCustomer>();
-            _idMap = new Dictionary<ulong, SkipListNode<ComparableCustomer>>();
+            _idMap = new Dictionary<ulong, SkipListNode<ComparableCustomer>>(_initDictionarySize);
         }
 
         /// <summary>
