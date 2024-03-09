@@ -17,7 +17,7 @@ namespace ScoresAndRanks.DataType
 
         private SkipList<ComparableCustomer> _skipList;
         //Dictionary for quick access link node by customer id
-        private ConcurrentDictionary<ulong, SkipListNode<ComparableCustomer>> _idMap;
+        private Dictionary<ulong, SkipListNode<ComparableCustomer>> _idMap;
 
         private static ReaderWriterLockSlim rwLock = new ReaderWriterLockSlim();
 
@@ -41,7 +41,7 @@ namespace ScoresAndRanks.DataType
         public ConcurrentCustomerSkipList()
         {
             _skipList = new SkipList<ComparableCustomer>();
-            _idMap = new ConcurrentDictionary<ulong, SkipListNode<ComparableCustomer>>();
+            _idMap = new Dictionary<ulong, SkipListNode<ComparableCustomer>>();
         }
 
         /// <summary>
@@ -67,8 +67,8 @@ namespace ScoresAndRanks.DataType
                         if (!_idMap.ContainsKey(id))
                         {
                             //insert
-                            node = _skipList.AddWithReturn(new ComparableCustomer { CustomerID = id, Score = score }); 
-                            _idMap.AddOrUpdate(node.Value.CustomerID, node, (Id, Node) => { return node; });
+                            node = _skipList.AddWithReturn(new ComparableCustomer { CustomerID = id, Score = score });
+                            _idMap.Add(node.Value.CustomerID, node);//AddOrUpdate(node.Value.CustomerID, node, (Id, Node) => { return node; });
                         }
                         else
                         {
