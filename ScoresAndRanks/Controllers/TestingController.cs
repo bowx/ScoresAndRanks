@@ -22,7 +22,7 @@ namespace ScoresAndRanks.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet("/load")]
-        public JsonResult LoadTest()
+        public async Task<JsonResult> LoadTest()
         {
 
             Stopwatch sw = new Stopwatch();
@@ -47,7 +47,7 @@ namespace ScoresAndRanks.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet("/create")]
-        public ActionResult<int> RandomUpdateAndCreate()
+        public async Task<ActionResult<int>> RandomUpdateAndCreate()
         {
             Customer customer = new Customer {
                 CustomerID = (ulong)new Random().Next(1000000, 5000000),
@@ -55,7 +55,7 @@ namespace ScoresAndRanks.Controllers
                 Rank = 0
 
             };
-            _scoresAndRanksService.InsertOrUpdateCustomer(customer);
+            await _scoresAndRanksService.InsertOrUpdateCustomerAsync(customer);
             return new ActionResult<int>(0);
         }
     }

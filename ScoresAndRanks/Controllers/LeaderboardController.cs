@@ -17,16 +17,16 @@ namespace ScoresAndRanks.Controllers
         }
 
         [HttpGet]
-        public JsonResult GetByRank([Required] int start, [Required] int end) 
+        public async Task<JsonResult> GetByRank([Required] int start, [Required] int end) 
         {
-            var customers = _scoresAndRanksService.GetByRank(start, end);
+            var customers = await _scoresAndRanksService.GetByRankAsync(start, end);
             return Json(customers);
         }
 
         [HttpGet("{id}")]
-        public JsonResult GetById(ulong id, int? high, int? low) 
+        public async Task<JsonResult> GetById(ulong id, int? high, int? low) 
         {
-            var customers = _scoresAndRanksService.GetCustomer(id, high ?? 0, low ?? 0);
+            var customers = await _scoresAndRanksService.GetCustomerAsync(id, high ?? 0, low ?? 0);
             return Json(customers);
         }
 

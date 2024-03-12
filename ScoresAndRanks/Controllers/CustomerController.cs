@@ -17,18 +17,18 @@ namespace ScoresAndRanks.Controllers
         }
 
         [HttpPost("/customer/{customerId}/score/{score?}")]
-        public JsonResult UpdateAndCreate(ulong customerId, long? score )
+        public async Task<JsonResult> UpdateAndCreate(ulong customerId, long? score )
         {
             score = score ?? 0;
-            var newScore = _scoresAndRanksService.InsertOrUpdateCustomer(new Customer { CustomerID = customerId, Score = (long)score});
+            var newScore = await _scoresAndRanksService.InsertOrUpdateCustomerAsync(new Customer { CustomerID = customerId, Score = (long)score});
             return Json(new { score = newScore });
         }
 
         [HttpPost("/customer/{customerId}")]
-        public JsonResult UpdateAndCreate(ulong customerId)
+        public async Task<JsonResult> UpdateAndCreate(ulong customerId)
         {
             long score = 0;
-            var newScore = _scoresAndRanksService.InsertOrUpdateCustomer(new Customer { CustomerID = customerId, Score = score });
+            var newScore = await _scoresAndRanksService.InsertOrUpdateCustomerAsync(new Customer { CustomerID = customerId, Score = score });
             return Json(new { score = newScore });
         }
 

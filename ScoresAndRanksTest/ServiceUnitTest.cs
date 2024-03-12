@@ -32,7 +32,7 @@ namespace ScoresAndRanksTest
 
         internal void CreateCustomer(ulong id, long score)
         {
-            _service.InsertOrUpdateCustomer(new Customer {
+            _service.InsertOrUpdateCustomerAsync(new Customer {
                 CustomerID= id,
                 Score = score
             });
@@ -45,7 +45,7 @@ namespace ScoresAndRanksTest
         }
 
         [Fact]
-        public void TestGetById()
+        public async void TestGetById()
         {
             // Arrange
             InitData();
@@ -56,10 +56,10 @@ namespace ScoresAndRanksTest
                 Rank = 0
             };
             //update, customer1's score should be 396
-            _service.InsertOrUpdateCustomer(customer1);
+            await _service.InsertOrUpdateCustomerAsync(customer1);
 
             // Act
-            var customers = _service.GetCustomer(254814111, 1, 3);
+            var customers = await _service.GetCustomerAsync(254814111, 1, 3);
 
             // Assert
             Assert.NotNull(customers);
@@ -71,10 +71,10 @@ namespace ScoresAndRanksTest
         }
 
         [Fact]
-        public void TestGetByRank() 
+        public async void TestGetByRank() 
         { 
             InitData();
-            var customers =  _service.GetByRank(2, 4);
+            var customers = await _service.GetByRankAsync(2, 4);
             Assert.NotNull(customers);
             Assert.Equal(3, customers.Count());
             AssertCustomer(customers[0], 81546541, 2);
@@ -84,7 +84,7 @@ namespace ScoresAndRanksTest
         }
 
         [Fact]
-        public void TestNegativeUpdate()
+        public async void TestNegativeUpdate()
         {
             InitData();
             Customer customer = new Customer
@@ -93,44 +93,44 @@ namespace ScoresAndRanksTest
                 Score = -25,
                 Rank = 0
             };
-            _service.InsertOrUpdateCustomer(customer);
-            var customers = _service.GetByRank(1, 4);
+            await _service.InsertOrUpdateCustomerAsync(customer);
+            var customers = await _service.GetByRankAsync(1, 4);
             Assert.Equal(4, customers.Count());
             AssertCustomer(customers[3], 15514665, 4);
             //if the customer's score is 0 or below, it should be removed from the list
             customer.Score = -100;
-            _service.InsertOrUpdateCustomer(customer);
-            var customers2 = _service.GetByRank(1, 10);
+            await _service.InsertOrUpdateCustomerAsync(customer);
+            var customers2 = await _service.GetByRankAsync(1, 10);
             Assert.Equal(9, customers2.Count());
 
         }
 
         [Fact]
-        public void TestEdge() 
+        public async void TestEdge() 
         { 
             InitData();
-            var customers = _service.GetByRank(9000, 10000);
+            var customers = await _service.GetByRankAsync(9000, 10000);
             Assert.Empty(customers);
-            Assert.Throws<ScoresAndRanksException>(() => _service.GetByRank(10, 5));
-            customers = _service.GetByRank(1, 10000);
+            await Assert.ThrowsAsync<ScoresAndRanksException>(async () => await _service.GetByRankAsync(10, 5));
+            customers = await _service.GetByRankAsync(1, 10000);
             Assert.Equal(10, customers.Count());
-            customers = _service.GetByRank(0, 3);
+            customers = await _service.GetByRankAsync(0, 3);
             Assert.Equal(3, customers.Count());
 
-            customers = _service.GetCustomer(254814111, 100, 100);
+            customers = await _service.GetCustomerAsync(254814111, 100, 100);
             Assert.Equal(10, customers.Count());
-            customers = _service.GetCustomer(254814111, -100, -100);
+            customers =  await _service.GetCustomerAsync(254814111, -100, -100);
             Assert.Single(customers);
 
-            customers = _service.GetCustomer(12345, 0, 0);
+            customers = await _service.GetCustomerAsync(12345, 0, 0);
             Assert.Empty(customers);
 
-            Assert.Throws<ScoresAndRanksException>(() => _service.InsertOrUpdateCustomer(new Customer {
+            await Assert.ThrowsAsync<ScoresAndRanksException>(async () => await _service.InsertOrUpdateCustomerAsync(new Customer {
                 CustomerID = 1,
                 Score = 1001,
                 Rank = 1
             }));
-            Assert.Throws<ScoresAndRanksException>(() => _service.InsertOrUpdateCustomer(new Customer
+            await Assert.ThrowsAsync<ScoresAndRanksException>(async () => await _service.InsertOrUpdateCustomerAsync(new Customer
             {
                 CustomerID = 1,
                 Score = -1001,

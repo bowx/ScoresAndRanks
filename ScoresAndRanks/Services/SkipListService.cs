@@ -14,23 +14,31 @@ namespace ScoresAndRanks.Services
             _customerList = new ConcurrentCustomerSkipList();
         }
 
-        public List<Customer> GetByRank(int start, int end)
+        public async Task<List<Customer>> GetByRankAsync(int start, int end)
         {
-            var result = new List<Customer>();
-            result = _customerList.GetByRange(start, end);
+            var result = await Task.Run(() => { return _customerList.GetByRange(start, end); });
             return result;
         }
 
-        public List<Customer> GetCustomer(ulong id, int high, int low)
+        public async Task<List<Customer>> GetCustomerAsync(ulong id, int high, int low)
         {
             if(!_customerList.ContainsId(id)) return new List<Customer>();
-            return _customerList.GetByWindow(id, high, low);
+            var result = await Task.Run(() => { return _customerList.GetByWindow(id, high, low); });
+            return result;
+        }
+
+        public async Task<long> InsertOrUpdateCustomerAsync(Customer customer)
+        {
+            if (customer.Score > 1000 || customer.Score < -1000) throw new ScoresAndRanksException(ScoresAndRanksExceptionType.SCORE_OUT_OF_RANGE);
+            var task = Task.Run(() => { return _customerList.AddOrUpdate(customer.CustomerID, customer.Score); });
+            var result = await task;
+            return result;// _customerList.AddOrUpdate(customer.CustomerID, customer.Score);
         }
 
         public long InsertOrUpdateCustomer(Customer customer)
         {
             if (customer.Score > 1000 || customer.Score < -1000) throw new ScoresAndRanksException(ScoresAndRanksExceptionType.SCORE_OUT_OF_RANGE);
-            return _customerList.AddOrUpdate(customer.CustomerID, customer.Score);
+            return  _customerList.AddOrUpdate(customer.CustomerID, customer.Score);
         }
     }
 }

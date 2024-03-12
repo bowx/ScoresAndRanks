@@ -16,10 +16,10 @@ namespace ScoresAndRanks.Services
             _customerList = new ConcurrentCustomerSortedList();
         }
 
-        public List<Customer> GetByRank(int start, int end)
+        public async Task<List<Customer>> GetByRankAsync(int start, int end)
         {
             var result = new List<Customer>();
-            foreach (var kv in _customerList.GetByRange(start, end))
+            foreach (var kv in await Task.Run(() => { return _customerList.GetByRange(start, end); }))
             {
                 result.Add(new Customer
                 {
@@ -32,12 +32,12 @@ namespace ScoresAndRanks.Services
             return result;
         }
 
-        public List<Customer> GetCustomer(ulong id, int high, int low)
+        public async Task<List<Customer>> GetCustomerAsync(ulong id, int high, int low)
         {
 
             if (!_customerList.ContainsId(id)) return new List<Customer>();
             var result = new List<Customer>();
-            foreach (var kv in _customerList.GetByWindow(id, high, low))
+            foreach (var kv in await Task.Run(() => { return _customerList.GetByWindow(id, high, low); }))
             {
                 result.Add(new Customer
                 {
@@ -47,12 +47,18 @@ namespace ScoresAndRanks.Services
                 });
             }
             return result;
+        }
+
+        public async Task<long> InsertOrUpdateCustomerAsync(Customer customer)
+        {
+            if (customer.Score > 1000 || customer.Score < -1000) throw new ScoresAndRanksException(ScoresAndRanksExceptionType.SCORE_OUT_OF_RANGE);
+            return await Task.Run(() => { return _customerList.AddOrUpdate(new ConcurrentCustomerSortedList.IdScoreStruct { Id = customer.CustomerID, Score = customer.Score }); });
         }
 
         public long InsertOrUpdateCustomer(Customer customer)
         {
             if (customer.Score > 1000 || customer.Score < -1000) throw new ScoresAndRanksException(ScoresAndRanksExceptionType.SCORE_OUT_OF_RANGE);
-            return _customerList.AddOrUpdate(new ConcurrentCustomerSortedList.IdScoreStruct { Id = customer.CustomerID, Score = customer.Score });
+             return _customerList.AddOrUpdate(new ConcurrentCustomerSortedList.IdScoreStruct { Id = customer.CustomerID, Score = customer.Score });
         }
 
     }

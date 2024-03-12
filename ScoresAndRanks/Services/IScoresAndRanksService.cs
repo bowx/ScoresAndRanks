@@ -4,8 +4,9 @@ namespace ScoresAndRanks.Services
 {
     public interface IScoresAndRanksService
     {
+        public Task<long> InsertOrUpdateCustomerAsync(Customer customer);
         public long InsertOrUpdateCustomer(Customer customer);
-        public List<Customer> GetByRank(int start, int end);
-        public List<Customer> GetCustomer(ulong id, int high, int low);
+        public Task<List<Customer>> GetByRankAsync(int start, int end);
+        public Task<List<Customer>> GetCustomerAsync(ulong id, int high, int low);
     }
 }
